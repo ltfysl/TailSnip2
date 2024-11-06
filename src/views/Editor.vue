@@ -129,6 +129,9 @@ const handleViewChange = (id: string) => {
       });
     }
     activeTab.value = 'overview';
+  } else if (id === 'explorer') {
+    // Switch back to editor tab when explorer is clicked
+    activeTab.value = 'editor';
   }
 };
 
