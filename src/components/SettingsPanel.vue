@@ -1,0 +1,62 @@
+<template>
+  <div class="p-4">
+    <h2 class="mb-4 text-lg font-semibold">Settings</h2>
+
+    <div class="space-y-4">
+      <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+        <h3 class="mb-3 text-sm font-medium">Appearance</h3>
+        <div class="space-y-2">
+          <label class="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              :checked="settingsStore.sidebarCollapsed"
+              @change="
+                (e) => settingsStore.setSidebarCollapsed(e.target.checked)
+              "
+              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>Collapse Sidebar</span>
+          </label>
+
+          <label class="flex items-center space-x-2">
+            <input
+              type="checkbox"
+              :checked="settingsStore.versionHistoryExpanded"
+              @change="
+                (e) => settingsStore.setVersionHistoryExpanded(e.target.checked)
+              "
+              class="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+            />
+            <span>Expand Version History</span>
+          </label>
+        </div>
+      </div>
+
+      <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
+        <h3 class="mb-3 text-sm font-medium">Preview Panel</h3>
+        <div class="space-y-2">
+          <label class="block">
+            <span class="text-sm">Width (px)</span>
+            <input
+              type="number"
+              :value="settingsStore.previewWidth"
+              @change="
+                (e) => settingsStore.setPreviewWidth(parseInt(e.target.value))
+              "
+              min="320"
+              max="800"
+              step="10"
+              class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+            />
+          </label>
+        </div>
+      </div>
+    </div>
+  </div>
+</template>
+
+<script setup lang="ts">
+import { useSettingsStore } from '../stores/settings';
+
+const settingsStore = useSettingsStore();
+</script>
