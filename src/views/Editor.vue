@@ -5,32 +5,36 @@
 
     <!-- Main Content -->
     <div class="flex flex-1">
-      <!-- Left Sidebar -->
-      <div
-        v-if="!settingsStore.sidebarCollapsed"
-        class="flex w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
-      >
-        <div class="flex-1 overflow-y-auto">
-          <ComponentLibrary />
+      <!-- Left Sidebar (only show in editor mode) -->
+      <template v-if="activeTab === 'editor'">
+        <div
+          v-if="!settingsStore.sidebarCollapsed"
+          class="flex w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+        >
+          <div class="flex-1 overflow-y-auto">
+            <ComponentLibrary />
+          </div>
+          <ComponentVersions v-if="store.activeComponent" />
         </div>
-        <ComponentVersions v-if="store.activeComponent" />
-      </div>
 
-      <!-- Toggle Sidebar Button -->
-      <button
-        @click="toggleSidebar"
-        class="flex items-center justify-center border-r border-gray-200 bg-white px-1 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
-      >
-        <component
-          :is="
-            settingsStore.sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon
-          "
-          class="h-4 w-4"
-        />
-        <span class="sr-only">
-          {{ settingsStore.sidebarCollapsed ? 'Show' : 'Hide' }} sidebar
-        </span>
-      </button>
+        <!-- Toggle Sidebar Button -->
+        <button
+          @click="toggleSidebar"
+          class="flex items-center justify-center border-r border-gray-200 bg-white px-1 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+        >
+          <component
+            :is="
+              settingsStore.sidebarCollapsed
+                ? ChevronRightIcon
+                : ChevronLeftIcon
+            "
+            class="h-4 w-4"
+          />
+          <span class="sr-only">
+            {{ settingsStore.sidebarCollapsed ? 'Show' : 'Hide' }} sidebar
+          </span>
+        </button>
+      </template>
 
       <!-- Main Content Area -->
       <div class="flex flex-1 flex-col">
