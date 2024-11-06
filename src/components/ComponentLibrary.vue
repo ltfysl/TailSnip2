@@ -41,14 +41,14 @@
         No components found
       </div>
       <div
-        v-for="component in filteredComponents"
+        v-for="component in sortedComponents"
         :key="component.id"
         @click="selectComponent(component)"
-        @contextmenu.prevent="openContextMenu($event, component)"
         class="group mb-3 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-blue-500 dark:border-gray-700"
         :class="{
           'border-blue-500': store.activeComponent?.id === component.id,
         }"
+        @contextmenu.prevent="openContextMenu($event, component)"
       >
         <div class="flex items-start justify-between">
           <div>
@@ -72,13 +72,18 @@
             </button>
           </div>
         </div>
-        <div class="mt-2 flex flex-wrap gap-1">
-          <span
-            v-for="tag in component.tags"
-            :key="tag"
-            class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-          >
-            {{ tag }}
+        <div class="mt-2 flex flex-col gap-2">
+          <div class="flex flex-wrap gap-1">
+            <span
+              v-for="tag in component.tags"
+              :key="tag"
+              class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
+            >
+              {{ tag }}
+            </span>
+          </div>
+          <span class="text-xs text-gray-400 dark:text-gray-500">
+            Created {{ formatDate(component.createdAt) }}
           </span>
         </div>
       </div>
@@ -132,6 +137,25 @@ const filteredComponents = computed(() => {
     return matchesSearch && matchesCategory;
   });
 });
+
+const sortedComponents = computed(() => {
+  return [...filteredComponents.value].sort((a, b) => {
+    // // If one of the components is active, keep its position
+    // if (store.activeComponent?.id === a.id) return -1;
+    // if (store.activeComponent?.id === b.id) return 1;
+
+    // Otherwise sort by creation date (newest first)
+    return b.createdAt.getTime() - a.createdAt.getTime();
+  });
+});
+
+const formatDate = (date: Date) => {
+  return new Intl.DateTimeFormat('en-US', {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  }).format(date);
+};
 
 const selectComponent = (component: Component) => {
   store.setActiveComponent(component);
