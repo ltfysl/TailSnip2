@@ -2,12 +2,16 @@ import { defineStore } from 'pinia';
 import { ref } from 'vue';
 import { dbManager } from '../db';
 import { v4 as uuidv4 } from 'uuid';
+import { ipcRenderer } from 'electron';
+import { useNotificationStore } from './notifications';
 
 export const useSettingsStore = defineStore('settings', () => {
     const sidebarCollapsed = ref(false);
     const versionHistoryExpanded = ref(true);
     const previewWidth = ref(384);
     const lastActiveTab = ref('editor');
+    const databasePath = ref('');
+    const notificationStore = useNotificationStore();
 
     const loadSettings = async () => {
         try {
@@ -29,8 +33,16 @@ export const useSettingsStore = defineStore('settings', () => {
                     case 'lastActiveTab':
                         lastActiveTab.value = row.setting_value;
                         break;
+                    case 'databasePath':
+                        databasePath.value = row.setting_value;
+                        break;
                 }
             });
+
+            // Get current database path if not set
+            if (!databasePath.value) {
+                databasePath.value = await ipcRenderer.invoke('get-database-path');
+            }
         } catch (error) {
             console.error('Error loading settings:', error);
         }
@@ -74,15 +86,33 @@ export const useSettingsStore = defineStore('settings', () => {
         await saveSetting('lastActiveTab', value);
     };
 
+    const setDatabasePath = async (value: string) => {
+        try {
+            const success = await ipcRenderer.invoke('set-database-path', value);
+            if (success) {
+                databasePath.value = value;
+                await saveSetting('databasePath', value);
+                notificationStore.addNotification('Database location changed. Application will restart...');
+            } else {
+                notificationStore.addNotification('Failed to change database location', 'error');
+            }
+        } catch (error) {
+            console.error('Error setting database path:', error);
+            notificationStore.addNotification('Failed to change database location', 'error');
+        }
+    };
+
     return {
         sidebarCollapsed,
         versionHistoryExpanded,
         previewWidth,
         lastActiveTab,
+        databasePath,
         loadSettings,
         setSidebarCollapsed,
         setVersionHistoryExpanded,
         setPreviewWidth,
         setLastActiveTab,
+        setDatabasePath,
     };
 });
