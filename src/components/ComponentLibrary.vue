@@ -44,8 +44,11 @@
         v-for="component in filteredComponents"
         :key="component.id"
         @click="selectComponent(component)"
+        @contextmenu.prevent="openContextMenu($event, component)"
         class="group mb-3 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-blue-500 dark:border-gray-700"
-        :class="{ 'border-blue-500': activeComponent?.id === component.id }"
+        :class="{
+          'border-blue-500': store.activeComponent?.id === component.id,
+        }"
       >
         <div class="flex items-start justify-between">
           <div>
@@ -85,6 +88,15 @@
       :is-open="showCreateModal"
       @close="showCreateModal = false"
     />
+
+    <Teleport to="body">
+      <ComponentContextMenu
+        v-if="showContextMenu"
+        :component="contextMenuComponent!"
+        :initial-position="contextMenuPosition"
+        @close="closeContextMenu"
+      />
+    </Teleport>
   </div>
 </template>
 
@@ -94,13 +106,17 @@ import { TrashIcon, DocumentDuplicateIcon } from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
 import type { Component } from '../types/component';
 import CreateComponentModal from './CreateComponentModal.vue';
+import ComponentContextMenu from './ComponentContextMenu.vue';
 
 const store = useComponentStore();
 const searchQuery = ref('');
 const showCreateModal = ref(false);
 const selectedCategory = ref('');
 
-const { activeComponent } = store;
+// Context menu state
+const showContextMenu = ref(false);
+const contextMenuComponent = ref<Component | null>(null);
+const contextMenuPosition = ref({ x: 0, y: 0 });
 
 const filteredComponents = computed(() => {
   const query = searchQuery.value.toLowerCase();
@@ -129,6 +145,28 @@ const deleteComponent = (id: string) => {
 
 const duplicateComponent = (component: Component) => {
   store.duplicateComponent(component);
+};
+
+const openContextMenu = (event: MouseEvent, component: Component) => {
+  // Close any existing context menu first
+  showContextMenu.value = false;
+
+  // Set new context menu data
+  contextMenuComponent.value = component;
+  contextMenuPosition.value = {
+    x: event.clientX,
+    y: event.clientY,
+  };
+
+  // Show the menu on next tick to ensure clean mounting
+  setTimeout(() => {
+    showContextMenu.value = true;
+  }, 0);
+};
+
+const closeContextMenu = () => {
+  showContextMenu.value = false;
+  contextMenuComponent.value = null;
 };
 
 // Load components when the component is mounted
