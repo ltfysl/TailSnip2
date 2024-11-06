@@ -44,6 +44,7 @@
             :title="tab.title"
             :icon="tab.icon"
             :is-active="activeTab === tab.id"
+            :closeable="tab.id !== 'editor'"
             @click="activeTab = tab.id"
             @close="closeTab(tab.id)"
           />
