@@ -22,7 +22,7 @@
           <span class="text-sm font-medium">{{ notification.message }}</span>
           <button
             type="button"
-            @click="notificationStore.removeNotification(notification.id)"
+            @click="removeNotification(notification.id)"
             class="ml-4 rounded-md p-1 hover:bg-white/20"
           >
             <XMarkIcon class="h-4 w-4" />
@@ -40,4 +40,8 @@ import { useNotificationStore } from '../stores/notifications';
 
 const notificationStore = useNotificationStore();
 const { notifications } = notificationStore;
+
+const removeNotification = (id: string) => {
+  notificationStore.removeNotification(id);
+};
 </script>

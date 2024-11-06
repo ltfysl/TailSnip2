@@ -27,6 +27,13 @@
           >
             Export Vue
           </button>
+          <button
+            @click="formatDocument"
+            class="rounded-md bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-700"
+            :disabled="!activeComponent"
+          >
+            Prettify
+          </button>
         </div>
       </div>
     </div>
@@ -46,6 +53,8 @@ const notificationStore = useNotificationStore();
 const editorContainer = ref<HTMLElement | null>(null);
 let editor: monaco.editor.IStandaloneCodeEditor | null = null;
 let autoSaveTimeout: number | null = null;
+
+let activeComponent = ref(store.activeComponent ?? false);
 
 const debouncedUpdate = (newCode: string) => {
   if (autoSaveTimeout) {
@@ -92,6 +101,7 @@ onMounted(async () => {
       comments: true,
       strings: true,
     },
+    formatOnType: true,
     suggestOnTriggerCharacters: true,
   });
 
@@ -170,6 +180,12 @@ const exportAsVue = () => {
     }
   } catch (error) {
     notificationStore.addNotification('Failed to export component', 'error');
+  }
+};
+
+const formatDocument = async () => {
+  if (editor) {
+    editor.trigger('editor', 'editor.action.formatDocument');
   }
 };
 </script>
