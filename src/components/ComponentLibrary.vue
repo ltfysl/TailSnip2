@@ -37,97 +37,180 @@
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-3">
+    <div class="flex-1 overflow-y-auto">
+      <!-- Opened Component Section -->
       <div
-        v-if="sortedComponents.length === 0"
-        class="flex flex-col items-center justify-center py-12"
+        v-if="store.activeComponent"
+        class="border-b border-gray-200 dark:border-gray-700"
       >
-        <DocumentIcon class="h-12 w-12 text-gray-400" />
-        <p class="mt-2 text-sm text-gray-500">No components found</p>
-      </div>
+        <div class="px-3 py-2">
+          <h3
+            class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+          >
+            Opened Component
+          </h3>
+        </div>
+        <div class="px-3 pb-3">
+          <div
+            class="group relative overflow-hidden rounded-lg border border-blue-500 bg-blue-50/50 transition-all dark:bg-blue-900/20"
+            @contextmenu.prevent="
+              openContextMenu($event, store.activeComponent)
+            "
+          >
+            <div class="p-3">
+              <div class="flex items-start justify-between">
+                <div class="min-w-0 flex-1">
+                  <h3
+                    class="truncate font-medium"
+                    :title="store.activeComponent.name"
+                  >
+                    {{ store.activeComponent.name }}
+                  </h3>
+                  <p
+                    class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400"
+                    :title="store.activeComponent.description"
+                  >
+                    {{ store.activeComponent.description }}
+                  </p>
+                </div>
 
-      <div class="space-y-2">
-        <div
-          v-for="component in sortedComponents"
-          :key="component.id"
-          @click="selectComponent(component)"
-          @contextmenu.prevent="openContextMenu($event, component)"
-          class="group relative overflow-hidden rounded-lg border transition-all"
-          :class="[
-            store.activeComponent?.id === component.id
-              ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
-              : 'border-gray-200 bg-white hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500/50',
-          ]"
-        >
-          <!-- Card Content -->
-          <div class="p-3">
-            <!-- Header -->
-            <div class="flex items-start justify-between">
-              <div class="min-w-0 flex-1">
-                <h3 class="truncate font-medium" :title="component.name">
-                  {{ component.name }}
-                </h3>
-                <p
-                  class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400"
-                  :title="component.description"
-                >
-                  {{ component.description }}
-                </p>
+                <div class="ml-4 flex-shrink-0">
+                  <div class="invisible flex gap-1 group-hover:visible">
+                    <button
+                      @click.stop="duplicateComponent(store.activeComponent)"
+                      class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                      title="Duplicate"
+                    >
+                      <DocumentDuplicateIcon class="h-4 w-4" />
+                    </button>
+                    <button
+                      @click.stop="deleteComponent(store.activeComponent.id)"
+                      class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700"
+                      title="Delete"
+                    >
+                      <TrashIcon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
 
-              <!-- Quick Actions -->
-              <div class="ml-4 flex-shrink-0">
-                <div class="invisible flex gap-1 group-hover:visible">
-                  <button
-                    @click.stop="duplicateComponent(component)"
-                    class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-                    title="Duplicate"
+              <div class="mt-2 flex flex-col gap-2">
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="tag in store.activeComponent.tags"
+                    :key="tag"
+                    class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
                   >
-                    <DocumentDuplicateIcon class="h-4 w-4" />
-                  </button>
-                  <button
-                    @click.stop="deleteComponent(component.id)"
-                    class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700"
-                    title="Delete"
-                  >
-                    <TrashIcon class="h-4 w-4" />
-                  </button>
+                    {{ tag }}
+                  </span>
+                </div>
+                <div
+                  class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500"
+                >
+                  <CalendarIcon class="h-3.5 w-3.5" />
+                  <span>{{ formatDate(store.activeComponent.createdAt) }}</span>
+                  <span class="h-1 w-1 rounded-full bg-current"></span>
+                  <FolderIcon class="h-3.5 w-3.5" />
+                  <span class="capitalize">{{
+                    store.activeComponent.category
+                  }}</span>
                 </div>
               </div>
             </div>
 
-            <!-- Tags & Metadata -->
-            <div class="mt-2 flex flex-col gap-2">
-              <div class="flex flex-wrap gap-1">
-                <span
-                  v-for="tag in component.tags"
-                  :key="tag"
-                  class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
-                >
-                  {{ tag }}
-                </span>
+            <div class="absolute inset-y-0 left-0 w-1 bg-blue-500"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Other Components Section -->
+      <div class="px-3 py-2">
+        <h3
+          class="text-xs font-medium uppercase tracking-wider text-gray-500 dark:text-gray-400"
+        >
+          All Components
+        </h3>
+      </div>
+
+      <div class="p-3 pt-0">
+        <div
+          v-if="sortedComponents.length === 0"
+          class="flex flex-col items-center justify-center py-12"
+        >
+          <DocumentIcon class="h-12 w-12 text-gray-400" />
+          <p class="mt-2 text-sm text-gray-500">No components found</p>
+        </div>
+
+        <div class="space-y-2">
+          <div
+            v-for="component in sortedComponents.filter(
+              (c) => c.id !== store.activeComponent?.id
+            )"
+            :key="component.id"
+            @click="selectComponent(component)"
+            @contextmenu.prevent="openContextMenu($event, component)"
+            class="group relative overflow-hidden rounded-lg border border-gray-200 bg-white transition-all hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500/50"
+          >
+            <div class="p-3">
+              <div class="flex items-start justify-between">
+                <div class="min-w-0 flex-1">
+                  <h3 class="truncate font-medium" :title="component.name">
+                    {{ component.name }}
+                  </h3>
+                  <p
+                    class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400"
+                    :title="component.description"
+                  >
+                    {{ component.description }}
+                  </p>
+                </div>
+
+                <div class="ml-4 flex-shrink-0">
+                  <div class="invisible flex gap-1 group-hover:visible">
+                    <button
+                      @click.stop="duplicateComponent(component)"
+                      class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                      title="Duplicate"
+                    >
+                      <DocumentDuplicateIcon class="h-4 w-4" />
+                    </button>
+                    <button
+                      @click.stop="deleteComponent(component.id)"
+                      class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700"
+                      title="Delete"
+                    >
+                      <TrashIcon class="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
               </div>
-              <div
-                class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500"
-              >
-                <CalendarIcon class="h-3.5 w-3.5" />
-                <span>{{ formatDate(component.createdAt) }}</span>
-                <span class="h-1 w-1 rounded-full bg-current"></span>
-                <FolderIcon class="h-3.5 w-3.5" />
-                <span class="capitalize">{{ component.category }}</span>
+
+              <div class="mt-2 flex flex-col gap-2">
+                <div class="flex flex-wrap gap-1">
+                  <span
+                    v-for="tag in component.tags"
+                    :key="tag"
+                    class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                  >
+                    {{ tag }}
+                  </span>
+                </div>
+                <div
+                  class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500"
+                >
+                  <CalendarIcon class="h-3.5 w-3.5" />
+                  <span>{{ formatDate(component.createdAt) }}</span>
+                  <span class="h-1 w-1 rounded-full bg-current"></span>
+                  <FolderIcon class="h-3.5 w-3.5" />
+                  <span class="capitalize">{{ component.category }}</span>
+                </div>
               </div>
             </div>
-          </div>
 
-          <!-- Selection Indicator -->
-          <div
-            class="absolute inset-y-0 left-0 w-1 transition-colors"
-            :class="[
-              store.activeComponent?.id === component.id
-                ? 'bg-blue-500'
-                : 'bg-transparent group-hover:bg-blue-200 dark:group-hover:bg-blue-500/50',
-            ]"
-          ></div>
+            <div
+              class="absolute inset-y-0 left-0 w-1 bg-transparent transition-colors group-hover:bg-blue-200 dark:group-hover:bg-blue-500/50"
+            ></div>
+          </div>
         </div>
       </div>
     </div>
