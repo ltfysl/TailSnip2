@@ -7,6 +7,7 @@ export const useSettingsStore = defineStore('settings', () => {
     const sidebarCollapsed = ref(false);
     const versionHistoryExpanded = ref(true);
     const previewWidth = ref(384);
+    const lastActiveTab = ref('editor');
 
     const loadSettings = async () => {
         try {
@@ -24,6 +25,9 @@ export const useSettingsStore = defineStore('settings', () => {
                         break;
                     case 'previewWidth':
                         previewWidth.value = parseInt(row.setting_value, 10);
+                        break;
+                    case 'lastActiveTab':
+                        lastActiveTab.value = row.setting_value;
                         break;
                 }
             });
@@ -65,13 +69,20 @@ export const useSettingsStore = defineStore('settings', () => {
         await saveSetting('previewWidth', value);
     };
 
+    const setLastActiveTab = async (value: string) => {
+        lastActiveTab.value = value;
+        await saveSetting('lastActiveTab', value);
+    };
+
     return {
         sidebarCollapsed,
         versionHistoryExpanded,
         previewWidth,
+        lastActiveTab,
         loadSettings,
         setSidebarCollapsed,
         setVersionHistoryExpanded,
         setPreviewWidth,
+        setLastActiveTab,
     };
 });

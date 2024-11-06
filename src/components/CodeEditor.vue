@@ -3,36 +3,47 @@
     <div class="border-b border-gray-200 p-4 dark:border-gray-700">
       <div class="flex items-center justify-between">
         <h2 class="text-lg font-semibold">
-          {{ activeComponent?.name || 'Editor' }}
+          {{ store.activeComponent?.name || 'Editor' }}
         </h2>
         <div class="flex gap-2">
           <button
             @click="saveComponent"
             class="rounded-md bg-green-600 px-3 py-1.5 text-sm text-white hover:bg-green-700"
-            :disabled="!activeComponent"
+            :disabled="!store.activeComponent"
           >
-            Save
+            <span class="flex items-center gap-1">
+              Save
+              <span class="text-xs opacity-75">
+                (<kbd v-if="isMac">⌘</kbd><kbd v-else>Ctrl</kbd> + <kbd>S</kbd>)
+              </span>
+            </span>
           </button>
           <button
             @click="exportAsHTML"
             class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
-            :disabled="!activeComponent"
+            :disabled="!store.activeComponent"
           >
             Export HTML
           </button>
           <button
             @click="exportAsVue"
             class="rounded-md bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-700"
-            :disabled="!activeComponent"
+            :disabled="!store.activeComponent"
           >
             Export Vue
           </button>
           <button
             @click="formatDocument"
             class="rounded-md bg-purple-600 px-3 py-1.5 text-sm text-white hover:bg-purple-700"
-            :disabled="!activeComponent"
+            :disabled="!store.activeComponent"
           >
-            Prettify
+            <span class="flex items-center gap-1">
+              Format
+              <span class="text-xs opacity-75">
+                (<kbd v-if="isMac">⌘</kbd><kbd v-else>Ctrl</kbd> +
+                <kbd>Shift</kbd> + <kbd>F</kbd>)
+              </span>
+            </span>
           </button>
         </div>
       </div>
@@ -43,7 +54,6 @@
 
 <script setup lang="ts">
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
-import * as monaco from 'monaco-editor';
 import { useComponentStore } from '../stores/components';
 import { useNotificationStore } from '../stores/notifications';
 import { exportComponent } from '../utils/export';
@@ -51,10 +61,9 @@ import { exportComponent } from '../utils/export';
 const store = useComponentStore();
 const notificationStore = useNotificationStore();
 const editorContainer = ref<HTMLElement | null>(null);
-let editor: monaco.editor.IStandaloneCodeEditor | null = null;
+let editor: any = null;
 let autoSaveTimeout: number | null = null;
-
-let activeComponent = ref(store.activeComponent ?? false);
+const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
 
 const debouncedUpdate = (newCode: string) => {
   if (autoSaveTimeout) {
@@ -67,30 +76,32 @@ const debouncedUpdate = (newCode: string) => {
         await store.updateComponent(store.activeComponent.id, {
           code: newCode,
         });
-        // Emit a custom event for real-time preview update
         window.dispatchEvent(
           new CustomEvent('component-code-updated', { detail: newCode })
         );
       } catch (error) {
         console.error('Failed to update component:', error);
+        notificationStore.addNotification(
+          'Failed to auto-save changes',
+          'error'
+        );
       }
     }
-  }, 100); // Reduced debounce delay for more responsive updates
+  }, 100);
 };
 
-// Initialize Monaco Editor
 onMounted(async () => {
   if (!editorContainer.value) return;
 
-  // Create editor instance
+  // Dynamically import Monaco Editor
+  const monaco = await import('monaco-editor');
+
   editor = monaco.editor.create(editorContainer.value, {
     value: store.activeComponent?.code || '',
     language: 'html',
     theme: 'vs-dark',
     automaticLayout: true,
-    minimap: {
-      enabled: false,
-    },
+    minimap: { enabled: false },
     fontSize: 14,
     lineNumbers: 'on',
     scrollBeyondLastLine: false,
@@ -105,7 +116,6 @@ onMounted(async () => {
     suggestOnTriggerCharacters: true,
   });
 
-  // Set up HTML language features
   monaco.languages.html.htmlDefaults.setOptions({
     format: {
       tabSize: 2,
@@ -116,16 +126,29 @@ onMounted(async () => {
     },
   });
 
-  // Handle editor content changes with debouncing
   editor.onDidChangeModelContent(() => {
     if (editor && store.activeComponent) {
       const newCode = editor.getValue();
       debouncedUpdate(newCode);
     }
   });
+
+  setupKeyboardShortcuts();
 });
 
-// Clean up editor instance and timeouts
+const setupKeyboardShortcuts = () => {
+  window.addEventListener('keydown', (e) => {
+    if ((e.metaKey || e.ctrlKey) && e.key === 's') {
+      e.preventDefault();
+      saveComponent();
+    }
+    if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === 'F') {
+      e.preventDefault();
+      formatDocument();
+    }
+  });
+};
+
 onBeforeUnmount(() => {
   if (autoSaveTimeout) {
     window.clearTimeout(autoSaveTimeout);
@@ -135,7 +158,6 @@ onBeforeUnmount(() => {
   }
 });
 
-// Watch for active component changes
 watch(
   () => store.activeComponent,
   (newComponent) => {

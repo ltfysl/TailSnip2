@@ -51,6 +51,7 @@ import {
   BookmarkIcon,
   CommandLineIcon,
   CubeIcon,
+  Squares2X2Icon,
 } from '@heroicons/vue/24/outline';
 
 defineProps<{
@@ -64,6 +65,7 @@ defineEmits<{
 const mainItems = [
   { id: 'explorer', icon: DocumentTextIcon, title: 'Component Explorer' },
   { id: 'bookmarks', icon: BookmarkIcon, title: 'Bookmarks' },
+  { id: 'overview', icon: Squares2X2Icon, title: 'Overview' },
   { id: 'terminal', icon: CommandLineIcon, title: 'Terminal' },
   { id: 'extensions', icon: CubeIcon, title: 'Extensions', badge: '2' },
 ];

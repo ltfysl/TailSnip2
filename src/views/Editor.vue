@@ -1,79 +1,95 @@
 <template>
   <div class="flex h-full w-full">
     <!-- Activity Menu -->
-    <ActivityMenu :active-view="activeView" @view-change="setActiveView" />
+    <ActivityMenu :active-view="activeView" @view-change="handleViewChange" />
 
-    <!-- Left Sidebar -->
-    <div
-      class="flex flex-col border-r border-gray-200 bg-white transition-all duration-300 dark:border-gray-700 dark:bg-gray-800"
-      :class="[settingsStore.sidebarCollapsed ? 'w-12' : 'w-64']"
-    >
+    <!-- Main Content -->
+    <div class="flex flex-1">
+      <!-- Left Sidebar -->
       <div
-        class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700"
+        v-if="!settingsStore.sidebarCollapsed"
+        class="flex w-64 flex-shrink-0 flex-col border-r border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
       >
-        <h2
-          class="text-lg font-semibold"
-          :class="{ 'sr-only': settingsStore.sidebarCollapsed }"
-        >
-          Components
-        </h2>
-        <button
-          @click="toggleSidebar"
-          class="rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-          :title="
-            settingsStore.sidebarCollapsed
-              ? 'Expand sidebar'
-              : 'Collapse sidebar'
+        <div class="flex-1 overflow-y-auto">
+          <ComponentLibrary />
+        </div>
+        <ComponentVersions v-if="store.activeComponent" />
+      </div>
+
+      <!-- Toggle Sidebar Button -->
+      <button
+        @click="toggleSidebar"
+        class="flex items-center justify-center border-r border-gray-200 bg-white px-1 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+      >
+        <component
+          :is="
+            settingsStore.sidebarCollapsed ? ChevronRightIcon : ChevronLeftIcon
           "
+          class="h-4 w-4"
+        />
+        <span class="sr-only">
+          {{ settingsStore.sidebarCollapsed ? 'Show' : 'Hide' }} sidebar
+        </span>
+      </button>
+
+      <!-- Main Content Area -->
+      <div class="flex flex-1 flex-col">
+        <!-- Tabs -->
+        <div
+          class="flex border-b border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
         >
-          <ChevronLeftIcon
-            v-if="!settingsStore.sidebarCollapsed"
-            class="h-5 w-5"
+          <Tab
+            v-for="tab in openTabs"
+            :key="tab.id"
+            :title="tab.title"
+            :icon="tab.icon"
+            :is-active="activeTab === tab.id"
+            @click="activeTab = tab.id"
+            @close="closeTab(tab.id)"
           />
-          <ChevronRightIcon v-else class="h-5 w-5" />
-        </button>
+        </div>
+
+        <!-- Tab Content -->
+        <div class="flex-1">
+          <template v-if="activeTab === 'editor'">
+            <div class="flex h-full">
+              <!-- Editor -->
+              <div class="flex-1">
+                <CodeEditor />
+              </div>
+
+              <!-- Resize Handle -->
+              <div
+                class="hover-handle cursor-col-resize hover:bg-blue-200"
+                @mousedown="startResize"
+              ></div>
+
+              <!-- Preview Panel -->
+              <div
+                ref="previewPanel"
+                class="flex-shrink-0"
+                :style="{ width: `${settingsStore.previewWidth}px` }"
+              >
+                <PreviewPanel />
+              </div>
+            </div>
+          </template>
+          <Overview v-else-if="activeTab === 'overview'" />
+          <SettingsPanel v-else-if="activeView === 'settings'" />
+        </div>
       </div>
-      <div
-        class="flex-1 overflow-y-auto"
-        :class="{ 'sr-only': settingsStore.sidebarCollapsed }"
-      >
-        <ComponentLibrary v-if="activeView === 'explorer'" />
-        <SettingsPanel v-else-if="activeView === 'settings'" />
-      </div>
-      <ComponentVersions
-        v-if="
-          store.activeComponent &&
-          !settingsStore.sidebarCollapsed &&
-          activeView === 'explorer'
-        "
-      />
-    </div>
-
-    <!-- Middle Section - Monaco Editor -->
-    <div class="flex-1 overflow-hidden">
-      <CodeEditor />
-    </div>
-
-    <!-- Resize Handle -->
-    <div
-      class="hover-handle cursor-col-resize bg-gray-200 hover:bg-blue-500 dark:bg-gray-700 dark:hover:bg-blue-600"
-      @mousedown="startResize"
-    ></div>
-
-    <!-- Right Preview Panel -->
-    <div
-      ref="previewPanel"
-      class="border-l border-gray-200 bg-white transition-all duration-75 dark:border-gray-700 dark:bg-gray-800"
-      :style="{ width: `${settingsStore.previewWidth}px` }"
-    >
-      <PreviewPanel />
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
-import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
+import { ref, onMounted, onBeforeUnmount, watch } from 'vue';
+import {
+  ChevronLeftIcon,
+  ChevronRightIcon,
+  PencilSquareIcon,
+  ViewColumnsIcon,
+} from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
 import { useSettingsStore } from '../stores/settings';
 import ActivityMenu from '../components/ActivityMenu.vue';
@@ -82,6 +98,8 @@ import ComponentVersions from '../components/ComponentVersions.vue';
 import CodeEditor from '../components/CodeEditor.vue';
 import PreviewPanel from '../components/PreviewPanel.vue';
 import SettingsPanel from '../components/SettingsPanel.vue';
+import Overview from '../components/Overview.vue';
+import Tab from '../components/Tab.vue';
 
 const store = useComponentStore();
 const settingsStore = useSettingsStore();
@@ -91,14 +109,54 @@ const maxWidth = 800;
 let isResizing = false;
 
 const activeView = ref('explorer');
+const activeTab = ref('editor');
+const openTabs = ref([
+  { id: 'editor', title: 'Editor', icon: PencilSquareIcon },
+]);
 
-const setActiveView = (id: string) => {
+const handleViewChange = (id: string) => {
   activeView.value = id;
+
+  // Handle special views that should open as tabs
+  if (id === 'overview') {
+    // Check if overview tab already exists
+    if (!openTabs.value.find((tab) => tab.id === 'overview')) {
+      openTabs.value.push({
+        id: 'overview',
+        title: 'Overview',
+        icon: ViewColumnsIcon,
+      });
+    }
+    activeTab.value = 'overview';
+  }
+};
+
+const closeTab = (tabId: string) => {
+  // Don't allow closing the editor tab
+  if (tabId === 'editor') return;
+
+  const index = openTabs.value.findIndex((tab) => tab.id === tabId);
+  if (index !== -1) {
+    openTabs.value.splice(index, 1);
+    // If we're closing the active tab, switch to editor
+    if (activeTab.value === tabId) {
+      activeTab.value = 'editor';
+    }
+  }
 };
 
 // Load settings when component mounts
 onMounted(async () => {
   await settingsStore.loadSettings();
+  // Restore last active tab if saved
+  if (settingsStore.lastActiveTab) {
+    activeTab.value = settingsStore.lastActiveTab;
+  }
+});
+
+// Watch for tab changes and save to settings
+watch(activeTab, async (newTab) => {
+  await settingsStore.setLastActiveTab(newTab);
 });
 
 const toggleSidebar = () => {
