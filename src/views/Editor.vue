@@ -37,9 +37,17 @@
       <CodeEditor />
     </div>
 
+    <!-- Resize Handle -->
+    <div
+      class="hover-handle cursor-col-resize bg-gray-200 hover:bg-blue-500 dark:bg-gray-700 dark:hover:bg-blue-600"
+      @mousedown="startResize"
+    ></div>
+
     <!-- Right Preview Panel -->
     <div
-      class="w-96 flex-shrink-0 border-l border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800"
+      ref="previewPanel"
+      class="border-l border-gray-200 bg-white transition-all duration-75 dark:border-gray-700 dark:bg-gray-800"
+      :style="{ width: `${previewWidth}px` }"
     >
       <PreviewPanel />
     </div>
@@ -47,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
 import ComponentLibrary from '../components/ComponentLibrary.vue';
@@ -57,10 +65,52 @@ import PreviewPanel from '../components/PreviewPanel.vue';
 
 const store = useComponentStore();
 const sidebarCollapsed = ref(false);
+const previewPanel = ref<HTMLElement | null>(null);
+const previewWidth = ref(384); // Default width (w-96 = 384px)
+const minWidth = 320; // Minimum preview width
+const maxWidth = 800; // Maximum preview width
+let isResizing = false;
 
 const toggleSidebar = () => {
   sidebarCollapsed.value = !sidebarCollapsed.value;
 };
+
+const startResize = (event: MouseEvent) => {
+  isResizing = true;
+  document.addEventListener('mousemove', handleResize);
+  document.addEventListener('mouseup', stopResize);
+  // Prevent text selection while resizing
+  document.body.style.userSelect = 'none';
+};
+
+const handleResize = (event: MouseEvent) => {
+  if (!isResizing || !previewPanel.value) return;
+
+  const containerRect =
+    previewPanel.value.parentElement?.getBoundingClientRect();
+  if (!containerRect) return;
+
+  // Calculate new width based on mouse position
+  const newWidth = containerRect.right - event.clientX;
+
+  // Constrain width between min and max values
+  previewWidth.value = Math.min(Math.max(newWidth, minWidth), maxWidth);
+};
+
+const stopResize = () => {
+  isResizing = false;
+  document.removeEventListener('mousemove', handleResize);
+  document.removeEventListener('mouseup', stopResize);
+  document.body.style.userSelect = '';
+};
+
+// Clean up event listeners
+onBeforeUnmount(() => {
+  if (isResizing) {
+    document.removeEventListener('mousemove', handleResize);
+    document.removeEventListener('mouseup', stopResize);
+  }
+});
 </script>
 
 <style scoped>
@@ -74,5 +124,21 @@ const toggleSidebar = () => {
   clip: rect(0, 0, 0, 0);
   white-space: nowrap;
   border-width: 0;
+}
+
+.hover-handle {
+  width: 4px;
+  transition: background-color 0.2s;
+}
+
+/* Improve handle visibility when resizing */
+.hover-handle:active {
+  width: 4px;
+  background-color: rgb(59, 130, 246); /* blue-500 */
+}
+
+/* Prevent text selection while resizing */
+.selecting-none {
+  user-select: none;
 }
 </style>
