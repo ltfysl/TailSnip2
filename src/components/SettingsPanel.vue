@@ -1,7 +1,5 @@
 <template>
-  <div class="p-4">
-    <h2 class="mb-4 text-lg font-semibold">Settings</h2>
-
+  <div class="mt-4">
     <div class="space-y-4">
       <div class="rounded-lg border border-gray-200 p-4 dark:border-gray-700">
         <h3 class="mb-3 text-sm font-medium">Appearance</h3>
