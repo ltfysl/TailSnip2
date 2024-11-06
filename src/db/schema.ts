@@ -31,4 +31,11 @@ export const SCHEMA = `
     setting_value TEXT NOT NULL,
     updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
   );
+
+  CREATE TABLE IF NOT EXISTS bookmarks (
+    id TEXT PRIMARY KEY,
+    component_id TEXT NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
+  );
 `;

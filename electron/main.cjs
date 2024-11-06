@@ -19,43 +19,48 @@ function getDatabase() {
 
       db = new Database(dbPath);
 
-      // Only create tables if this is a new database
-      if (!dbExists) {
-        db.exec(`
-          CREATE TABLE IF NOT EXISTS components (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            code TEXT NOT NULL,
-            category TEXT NOT NULL,
-            tags TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          );
+      // Create tables for both new and existing databases
+      db.exec(`
+        CREATE TABLE IF NOT EXISTS components (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          code TEXT NOT NULL,
+          category TEXT NOT NULL,
+          tags TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-          CREATE TABLE IF NOT EXISTS categories (
-            id TEXT PRIMARY KEY,
-            name TEXT NOT NULL,
-            description TEXT,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          );
+        CREATE TABLE IF NOT EXISTS categories (
+          id TEXT PRIMARY KEY,
+          name TEXT NOT NULL,
+          description TEXT,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
 
-          CREATE TABLE IF NOT EXISTS component_versions (
-            id TEXT PRIMARY KEY,
-            component_id TEXT NOT NULL,
-            code TEXT NOT NULL,
-            created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
-            FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
-          );
+        CREATE TABLE IF NOT EXISTS component_versions (
+          id TEXT PRIMARY KEY,
+          component_id TEXT NOT NULL,
+          code TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
+        );
 
-          CREATE TABLE IF NOT EXISTS ui_settings (
-            id TEXT PRIMARY KEY,
-            setting_key TEXT NOT NULL UNIQUE,
-            setting_value TEXT NOT NULL,
-            updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
-          );
-        `);
-      }
+        CREATE TABLE IF NOT EXISTS ui_settings (
+          id TEXT PRIMARY KEY,
+          setting_key TEXT NOT NULL UNIQUE,
+          setting_value TEXT NOT NULL,
+          updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+        );
+
+        CREATE TABLE IF NOT EXISTS bookmarks (
+          id TEXT PRIMARY KEY,
+          component_id TEXT NOT NULL,
+          created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+          FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
+        );
+      `);
     } catch (error) {
       console.error('Error initializing database:', error);
       throw error;
@@ -104,23 +109,7 @@ ipcMain.handle('set-database-path', async (event, newPath) => {
       try {
         // Test if it's a valid SQLite database by attempting to open it
         const testDb = new Database(newPath);
-
-        // Check if it has the required tables
-        const tables = testDb
-          .prepare(
-            `
-          SELECT name FROM sqlite_master
-          WHERE type='table' AND name IN ('components', 'categories', 'component_versions', 'ui_settings')
-        `
-          )
-          .all();
-
         testDb.close();
-
-        // If not all required tables exist, throw error
-        if (tables.length < 4) {
-          throw new Error('Invalid database structure');
-        }
       } catch (error) {
         throw new Error('Invalid SQLite database');
       }
@@ -139,7 +128,7 @@ ipcMain.handle('set-database-path', async (event, newPath) => {
 
     dbPath = newPath;
 
-    // Test new database connection
+    // Test new database connection and ensure tables exist
     getDatabase();
 
     // Save the new path

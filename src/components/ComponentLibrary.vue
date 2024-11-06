@@ -168,6 +168,22 @@
                 <div class="ml-4 flex-shrink-0">
                   <div class="invisible flex gap-1 group-hover:visible">
                     <button
+                      class="rounded-md p-1 transition-colors"
+                      :class="[
+                        isBookmarked(component.id)
+                          ? 'text-yellow-500 hover:bg-yellow-500 dark:hover:bg-yellow-900/20'
+                          : 'text-gray-400 hover:bg-gray-100 hover:text-yellow-500 dark:hover:bg-gray-700',
+                      ]"
+                      :title="
+                        isBookmarked(component.id)
+                          ? 'Remove bookmark'
+                          : 'Add bookmark'
+                      "
+                      @click.stop="toggleBookmark(component)"
+                    >
+                      <BookmarkIcon class="h-4 w-4" />
+                    </button>
+                    <button
                       @click.stop="duplicateComponent(component)"
                       class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
                       title="Duplicate"
@@ -246,7 +262,11 @@ import { useComponentStore } from '../stores/components';
 import type { Component } from '../types/component';
 import CreateComponentModal from './CreateComponentModal.vue';
 import ComponentContextMenu from './ComponentContextMenu.vue';
+import { BookmarkIcon } from '@heroicons/vue/24/outline';
+import { BookmarkIcon as BookmarkIconSolid } from '@heroicons/vue/24/solid';
+import { useBookmarksStore } from '../stores/bookmarks';
 
+const bookmarksStore = useBookmarksStore();
 const store = useComponentStore();
 const searchQuery = ref('');
 const showCreateModal = ref(false);
@@ -327,4 +347,14 @@ const closeContextMenu = () => {
 
 // Load components when the component is mounted
 store.fetchComponents();
+
+const isBookmarked = async (componentId: string) => {
+  let isBookmarked = await bookmarksStore.isBookmarked(componentId);
+  console.log(isBookmarked);
+  return isBookmarked;
+};
+
+const toggleBookmark = async (component: Component) => {
+  await bookmarksStore.toggleBookmark(component.id);
+};
 </script>
