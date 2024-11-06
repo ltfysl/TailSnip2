@@ -5,23 +5,27 @@
         <h2 class="text-lg font-semibold">Components</h2>
         <button
           @click="showCreateModal = true"
-          class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
+          class="inline-flex items-center gap-1 rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white transition-colors hover:bg-blue-700"
         >
+          <PlusIcon class="h-4 w-4" />
           New
         </button>
       </div>
-      <div class="mt-4">
-        <input
-          type="text"
-          v-model="searchQuery"
-          placeholder="Search components..."
-          class="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
-        />
-      </div>
-      <div class="mt-2">
+      <div class="mt-4 space-y-2">
+        <div class="relative">
+          <MagnifyingGlassIcon
+            class="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400"
+          />
+          <input
+            type="text"
+            v-model="searchQuery"
+            placeholder="Search components..."
+            class="w-full rounded-md border border-gray-300 bg-white py-2 pl-9 pr-3 text-sm transition-colors placeholder:text-gray-400 focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
+          />
+        </div>
         <select
           v-model="selectedCategory"
-          class="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700"
+          class="w-full rounded-md border border-gray-300 bg-white px-3 py-2 text-sm transition-colors focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500 dark:border-gray-600 dark:bg-gray-700"
         >
           <option value="">All Categories</option>
           <option value="buttons">Buttons</option>
@@ -33,58 +37,97 @@
       </div>
     </div>
 
-    <div class="flex-1 overflow-y-auto p-4">
+    <div class="flex-1 overflow-y-auto p-3">
       <div
-        v-if="filteredComponents.length === 0"
-        class="text-center text-gray-500"
+        v-if="sortedComponents.length === 0"
+        class="flex flex-col items-center justify-center py-12"
       >
-        No components found
+        <DocumentIcon class="h-12 w-12 text-gray-400" />
+        <p class="mt-2 text-sm text-gray-500">No components found</p>
       </div>
-      <div
-        v-for="component in sortedComponents"
-        :key="component.id"
-        @click="selectComponent(component)"
-        class="group mb-3 cursor-pointer rounded-md border border-gray-200 p-3 hover:border-blue-500 dark:border-gray-700"
-        :class="{
-          'border-blue-500': store.activeComponent?.id === component.id,
-        }"
-        @contextmenu.prevent="openContextMenu($event, component)"
-      >
-        <div class="flex items-start justify-between">
-          <div>
-            <h3 class="font-medium">{{ component.name }}</h3>
-            <p class="mt-1 text-sm text-gray-600 dark:text-gray-400">
-              {{ component.description }}
-            </p>
+
+      <div class="space-y-2">
+        <div
+          v-for="component in sortedComponents"
+          :key="component.id"
+          @click="selectComponent(component)"
+          @contextmenu.prevent="openContextMenu($event, component)"
+          class="group relative overflow-hidden rounded-lg border transition-all"
+          :class="[
+            store.activeComponent?.id === component.id
+              ? 'border-blue-500 bg-blue-50/50 dark:bg-blue-900/20'
+              : 'border-gray-200 bg-white hover:border-blue-200 dark:border-gray-700 dark:bg-gray-800 dark:hover:border-blue-500/50',
+          ]"
+        >
+          <!-- Card Content -->
+          <div class="p-3">
+            <!-- Header -->
+            <div class="flex items-start justify-between">
+              <div class="min-w-0 flex-1">
+                <h3 class="truncate font-medium" :title="component.name">
+                  {{ component.name }}
+                </h3>
+                <p
+                  class="mt-1 line-clamp-2 text-sm text-gray-500 dark:text-gray-400"
+                  :title="component.description"
+                >
+                  {{ component.description }}
+                </p>
+              </div>
+
+              <!-- Quick Actions -->
+              <div class="ml-4 flex-shrink-0">
+                <div class="invisible flex gap-1 group-hover:visible">
+                  <button
+                    @click.stop="duplicateComponent(component)"
+                    class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
+                    title="Duplicate"
+                  >
+                    <DocumentDuplicateIcon class="h-4 w-4" />
+                  </button>
+                  <button
+                    @click.stop="deleteComponent(component.id)"
+                    class="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-red-600 dark:hover:bg-gray-700"
+                    title="Delete"
+                  >
+                    <TrashIcon class="h-4 w-4" />
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Tags & Metadata -->
+            <div class="mt-2 flex flex-col gap-2">
+              <div class="flex flex-wrap gap-1">
+                <span
+                  v-for="tag in component.tags"
+                  :key="tag"
+                  class="inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300"
+                >
+                  {{ tag }}
+                </span>
+              </div>
+              <div
+                class="flex items-center gap-2 text-xs text-gray-400 dark:text-gray-500"
+              >
+                <CalendarIcon class="h-3.5 w-3.5" />
+                <span>{{ formatDate(component.createdAt) }}</span>
+                <span class="h-1 w-1 rounded-full bg-current"></span>
+                <FolderIcon class="h-3.5 w-3.5" />
+                <span class="capitalize">{{ component.category }}</span>
+              </div>
+            </div>
           </div>
-          <div class="invisible flex gap-1 group-hover:visible">
-            <button
-              @click.stop="duplicateComponent(component)"
-              class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            >
-              <DocumentDuplicateIcon class="h-5 w-5" />
-            </button>
-            <button
-              @click.stop="deleteComponent(component.id)"
-              class="rounded p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700"
-            >
-              <TrashIcon class="h-5 w-5" />
-            </button>
-          </div>
-        </div>
-        <div class="mt-2 flex flex-col gap-2">
-          <div class="flex flex-wrap gap-1">
-            <span
-              v-for="tag in component.tags"
-              :key="tag"
-              class="rounded-full bg-gray-100 px-2 py-0.5 text-xs text-gray-700 dark:bg-gray-700 dark:text-gray-300"
-            >
-              {{ tag }}
-            </span>
-          </div>
-          <span class="text-xs text-gray-400 dark:text-gray-500">
-            Created {{ formatDate(component.createdAt) }}
-          </span>
+
+          <!-- Selection Indicator -->
+          <div
+            class="absolute inset-y-0 left-0 w-1 transition-colors"
+            :class="[
+              store.activeComponent?.id === component.id
+                ? 'bg-blue-500'
+                : 'bg-transparent group-hover:bg-blue-200 dark:group-hover:bg-blue-500/50',
+            ]"
+          ></div>
         </div>
       </div>
     </div>
@@ -107,7 +150,15 @@
 
 <script setup lang="ts">
 import { ref, computed } from 'vue';
-import { TrashIcon, DocumentDuplicateIcon } from '@heroicons/vue/24/outline';
+import {
+  PlusIcon,
+  TrashIcon,
+  DocumentDuplicateIcon,
+  MagnifyingGlassIcon,
+  DocumentIcon,
+  CalendarIcon,
+  FolderIcon,
+} from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
 import type { Component } from '../types/component';
 import CreateComponentModal from './CreateComponentModal.vue';
@@ -123,9 +174,9 @@ const showContextMenu = ref(false);
 const contextMenuComponent = ref<Component | null>(null);
 const contextMenuPosition = ref({ x: 0, y: 0 });
 
-const filteredComponents = computed(() => {
-  const query = searchQuery.value.toLowerCase();
-  return store.components.filter((component) => {
+const sortedComponents = computed(() => {
+  const filtered = store.components.filter((component) => {
+    const query = searchQuery.value.toLowerCase();
     const matchesSearch =
       component.name.toLowerCase().includes(query) ||
       component.description.toLowerCase().includes(query) ||
@@ -136,13 +187,11 @@ const filteredComponents = computed(() => {
 
     return matchesSearch && matchesCategory;
   });
-});
 
-const sortedComponents = computed(() => {
-  return [...filteredComponents.value].sort((a, b) => {
-    // // If one of the components is active, keep its position
-    // if (store.activeComponent?.id === a.id) return -1;
-    // if (store.activeComponent?.id === b.id) return 1;
+  return filtered.sort((a, b) => {
+    // If one of the components is active, keep its position
+    if (store.activeComponent?.id === a.id) return -1;
+    if (store.activeComponent?.id === b.id) return 1;
 
     // Otherwise sort by creation date (newest first)
     return b.createdAt.getTime() - a.createdAt.getTime();
