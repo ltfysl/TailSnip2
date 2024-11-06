@@ -24,4 +24,11 @@ export const SCHEMA = `
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
     FOREIGN KEY (component_id) REFERENCES components(id) ON DELETE CASCADE
   );
+
+  CREATE TABLE IF NOT EXISTS ui_settings (
+    id TEXT PRIMARY KEY,
+    setting_key TEXT NOT NULL UNIQUE,
+    setting_value TEXT NOT NULL,
+    updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+  );
 `;

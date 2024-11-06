@@ -3,33 +3,42 @@
     <!-- Left Sidebar -->
     <div
       class="flex flex-col border-r border-gray-200 bg-white transition-all duration-300 dark:border-gray-700 dark:bg-gray-800"
-      :class="[sidebarCollapsed ? 'w-12' : 'w-64']"
+      :class="[settingsStore.sidebarCollapsed ? 'w-12' : 'w-64']"
     >
       <div
         class="flex items-center justify-between border-b border-gray-200 p-4 dark:border-gray-700"
       >
         <h2
           class="text-lg font-semibold"
-          :class="{ 'sr-only': sidebarCollapsed }"
+          :class="{ 'sr-only': settingsStore.sidebarCollapsed }"
         >
           Components
         </h2>
         <button
           @click="toggleSidebar"
           class="rounded-md p-1 text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700"
-          :title="sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'"
+          :title="
+            settingsStore.sidebarCollapsed
+              ? 'Expand sidebar'
+              : 'Collapse sidebar'
+          "
         >
-          <ChevronLeftIcon v-if="!sidebarCollapsed" class="h-5 w-5" />
+          <ChevronLeftIcon
+            v-if="!settingsStore.sidebarCollapsed"
+            class="h-5 w-5"
+          />
           <ChevronRightIcon v-else class="h-5 w-5" />
         </button>
       </div>
       <div
         class="flex-1 overflow-y-auto"
-        :class="{ 'sr-only': sidebarCollapsed }"
+        :class="{ 'sr-only': settingsStore.sidebarCollapsed }"
       >
         <ComponentLibrary />
       </div>
-      <ComponentVersions v-if="store.activeComponent && !sidebarCollapsed" />
+      <ComponentVersions
+        v-if="store.activeComponent && !settingsStore.sidebarCollapsed"
+      />
     </div>
 
     <!-- Middle Section - Monaco Editor -->
@@ -47,7 +56,7 @@
     <div
       ref="previewPanel"
       class="border-l border-gray-200 bg-white transition-all duration-75 dark:border-gray-700 dark:bg-gray-800"
-      :style="{ width: `${previewWidth}px` }"
+      :style="{ width: `${settingsStore.previewWidth}px` }"
     >
       <PreviewPanel />
     </div>
@@ -58,28 +67,32 @@
 import { ref, onMounted, onBeforeUnmount } from 'vue';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
+import { useSettingsStore } from '../stores/settings';
 import ComponentLibrary from '../components/ComponentLibrary.vue';
 import ComponentVersions from '../components/ComponentVersions.vue';
 import CodeEditor from '../components/CodeEditor.vue';
 import PreviewPanel from '../components/PreviewPanel.vue';
 
 const store = useComponentStore();
-const sidebarCollapsed = ref(false);
+const settingsStore = useSettingsStore();
 const previewPanel = ref<HTMLElement | null>(null);
-const previewWidth = ref(384); // Default width (w-96 = 384px)
-const minWidth = 320; // Minimum preview width
-const maxWidth = 800; // Maximum preview width
+const minWidth = 320;
+const maxWidth = 800;
 let isResizing = false;
 
+// Load settings when component mounts
+onMounted(async () => {
+  await settingsStore.loadSettings();
+});
+
 const toggleSidebar = () => {
-  sidebarCollapsed.value = !sidebarCollapsed.value;
+  settingsStore.setSidebarCollapsed(!settingsStore.sidebarCollapsed);
 };
 
 const startResize = (event: MouseEvent) => {
   isResizing = true;
   document.addEventListener('mousemove', handleResize);
   document.addEventListener('mouseup', stopResize);
-  // Prevent text selection while resizing
   document.body.style.userSelect = 'none';
 };
 
@@ -90,11 +103,9 @@ const handleResize = (event: MouseEvent) => {
     previewPanel.value.parentElement?.getBoundingClientRect();
   if (!containerRect) return;
 
-  // Calculate new width based on mouse position
   const newWidth = containerRect.right - event.clientX;
-
-  // Constrain width between min and max values
-  previewWidth.value = Math.min(Math.max(newWidth, minWidth), maxWidth);
+  const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
+  settingsStore.setPreviewWidth(constrainedWidth);
 };
 
 const stopResize = () => {
@@ -104,7 +115,6 @@ const stopResize = () => {
   document.body.style.userSelect = '';
 };
 
-// Clean up event listeners
 onBeforeUnmount(() => {
   if (isResizing) {
     document.removeEventListener('mousemove', handleResize);
@@ -131,13 +141,11 @@ onBeforeUnmount(() => {
   transition: background-color 0.2s;
 }
 
-/* Improve handle visibility when resizing */
 .hover-handle:active {
   width: 4px;
-  background-color: rgb(59, 130, 246); /* blue-500 */
+  background-color: rgb(59, 130, 246);
 }
 
-/* Prevent text selection while resizing */
 .selecting-none {
   user-select: none;
 }
