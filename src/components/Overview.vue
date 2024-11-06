@@ -52,7 +52,10 @@
                 </div>
                 <div class="flex gap-2">
                   <button
-                    @click="openComponent(component)"
+                    @click="
+                      openComponent(component);
+                      $emit('viewChange', 'explorer');
+                    "
                     class="rounded-md bg-blue-600 px-3 py-1.5 text-sm text-white hover:bg-blue-700"
                   >
                     Edit
@@ -90,6 +93,10 @@ import { useComponentStore } from '../stores/components';
 import { useRouter } from 'vue-router';
 import type { Component } from '../types/component';
 import { getPreviewStyles } from '../preview-styles';
+
+defineEmits<{
+  (e: 'viewChange', view: string): void;
+}>();
 
 const store = useComponentStore();
 const router = useRouter();

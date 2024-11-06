@@ -79,7 +79,10 @@
               </div>
             </div>
           </template>
-          <Overview v-else-if="activeTab === 'overview'" />
+          <Overview
+            v-else-if="activeTab === 'overview'"
+            @view-change="handleViewChange"
+          />
         </div>
       </div>
     </div>
