@@ -29,7 +29,7 @@
     <div class="flex-1 overflow-auto p-4">
       <div
         :class="[
-          'preview-container mx-auto transition-all',
+          'preview-container mx-auto h-full transition-all',
           {
             'w-full': previewSize === 'Full',
             'max-w-md': previewSize === 'Mobile',
@@ -40,9 +40,8 @@
         <iframe
           ref="previewFrame"
           :class="[
-            'preview-content w-full rounded-lg',
+            'preview-content h-full w-full rounded-lg',
             { dark: isDark },
-            { 'h-screen': isTabView },
           ]"
           sandbox="allow-scripts"
           :srcdoc="previewContent"
@@ -157,7 +156,8 @@ watch(
 }
 
 .preview-content {
-  @apply min-h-[200px] transition-colors;
+  @apply transition-colors;
   border: none;
+  min-height: calc(100vh - 8rem);
 }
 </style>
