@@ -11,6 +11,13 @@
             {{ isDark ? 'Light' : 'Dark' }} Mode
           </button>
           <button
+            @click="toggleTabView"
+            class="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+            :title="isTabView ? 'Switch to Split View' : 'Switch to Tab View'"
+          >
+            {{ isTabView ? 'Split View' : 'Tab View' }}
+          </button>
+          <button
             @click="toggleSize"
             class="rounded-md bg-gray-100 px-3 py-1.5 text-sm hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
           >
@@ -32,7 +39,11 @@
       >
         <iframe
           ref="previewFrame"
-          :class="['preview-content w-full rounded-lg', { dark: isDark }]"
+          :class="[
+            'preview-content w-full rounded-lg',
+            { dark: isDark },
+            { 'h-screen': isTabView },
+          ]"
           sandbox="allow-scripts"
           :srcdoc="previewContent"
         ></iframe>
@@ -46,9 +57,12 @@ import { computed, ref, watch, onMounted, onBeforeUnmount } from 'vue';
 import { useComponentStore } from '../stores/components';
 import DOMPurify from 'dompurify';
 import { getPreviewStyles, initializeTailwindStyles } from '../preview-styles';
+import { useEventBus, EventNames } from '../utils/eventbus';
 
 const store = useComponentStore();
+const eventBus = useEventBus();
 const isDark = ref(false);
+const isTabView = ref(false);
 const previewSize = ref<'Mobile' | 'Tablet' | 'Full'>('Full');
 const previewFrame = ref<HTMLIFrameElement | null>(null);
 
@@ -74,6 +88,11 @@ const previewContent = computed(() => {
 
 const toggleTheme = () => {
   isDark.value = !isDark.value;
+};
+
+const toggleTabView = () => {
+  isTabView.value = !isTabView.value;
+  eventBus.emit(EventNames.PREVIEW_RESIZE, isTabView.value);
 };
 
 const toggleSize = () => {

@@ -37,12 +37,13 @@
         <div class="flex-1">
           <div class="flex h-full">
             <!-- Editor -->
-            <div class="flex-1">
+            <div class="flex-1" :class="{ hidden: isPreviewTabView }">
               <CodeEditor />
             </div>
 
             <!-- Resize Handle -->
             <div
+              v-if="!isPreviewTabView"
               class="hover-handle cursor-col-resize hover:bg-blue-200"
               @mousedown="startResize"
             ></div>
@@ -50,8 +51,8 @@
             <!-- Preview Panel -->
             <div
               ref="previewPanel"
-              class="flex-shrink-0"
-              :style="{ width: `${settingsStore.previewWidth}px` }"
+              :class="['flex-shrink-0', { 'flex-1': isPreviewTabView }]"
+              :style="previewStyle"
             >
               <PreviewPanel />
             </div>
@@ -63,7 +64,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, onBeforeUnmount } from 'vue';
+import { ref, onMounted, watch, onBeforeUnmount, computed } from 'vue';
 import { ChevronLeftIcon, ChevronRightIcon } from '@heroicons/vue/24/outline';
 import { useComponentStore } from '../stores/components';
 import { useSettingsStore } from '../stores/settings';
@@ -71,17 +72,30 @@ import ComponentLibrary from '../components/ComponentLibrary.vue';
 import ComponentVersions from '../components/ComponentVersions.vue';
 import CodeEditor from '../components/CodeEditor.vue';
 import PreviewPanel from '../components/PreviewPanel.vue';
+import { useEventBus, EventNames } from '../utils/eventbus';
 
 const store = useComponentStore();
 const settingsStore = useSettingsStore();
+const eventBus = useEventBus();
 const previewPanel = ref<HTMLElement | null>(null);
 const minWidth = 320;
 const maxWidth = 800;
 let isResizing = false;
+const isPreviewTabView = ref(false);
+
+const previewStyle = computed(() => {
+  if (isPreviewTabView.value) {
+    return {};
+  }
+  return { width: `${settingsStore.previewWidth}px` };
+});
 
 // Load settings when component mounts
 onMounted(async () => {
   await settingsStore.loadSettings();
+  eventBus.on(EventNames.PREVIEW_RESIZE, (tabView: boolean) => {
+    isPreviewTabView.value = tabView;
+  });
 });
 
 const toggleSidebar = () => {
@@ -119,6 +133,7 @@ onBeforeUnmount(() => {
     document.removeEventListener('mousemove', handleResize);
     document.removeEventListener('mouseup', stopResize);
   }
+  eventBus.off(EventNames.PREVIEW_RESIZE, () => {});
 });
 </script>
 
