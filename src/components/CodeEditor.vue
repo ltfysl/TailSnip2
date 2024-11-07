@@ -45,6 +45,7 @@
               </span>
             </span>
           </button>
+          <AICodeGeneration @insert-code="insertGeneratedCode" />
         </div>
       </div>
     </div>
@@ -57,6 +58,7 @@ import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useComponentStore } from '../stores/components';
 import { useNotificationStore } from '../stores/notifications';
 import { exportComponent } from '../utils/export';
+import AICodeGeneration from './AICodeGeneration.vue';
 
 const store = useComponentStore();
 const notificationStore = useNotificationStore();
@@ -147,6 +149,18 @@ const setupKeyboardShortcuts = () => {
       formatDocument();
     }
   });
+};
+
+const insertGeneratedCode = (code: string) => {
+  if (editor) {
+    const selection = editor.getSelection();
+    editor.executeEdits('ai-generation', [
+      {
+        range: selection,
+        text: code,
+      },
+    ]);
+  }
 };
 
 onBeforeUnmount(() => {
