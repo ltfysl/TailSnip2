@@ -73,9 +73,9 @@
 
         <!-- Generate Button -->
         <button
-          @click="generateCode"
           class="w-full rounded-md bg-indigo-600 px-4 py-2 text-sm font-medium text-white hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2"
           :disabled="isLoading || !selectedModel || !prompt.trim()"
+          @click="generateCode"
         >
           <template v-if="isLoading">
             <svg
@@ -158,18 +158,24 @@ const generateCode = async () => {
       },
       body: JSON.stringify({
         model: selectedModel.value.model,
+        stream: false,
         prompt: `${systemPrompt.value}${prompt.value}`,
       }),
+    }).then(async function (response) {
+        if (!response.ok) {
+              throw new Error('Failed to generate code');
+            }
+            const responseText = await response.text();
+            console.log('Raw response:', responseText); // Add this line to inspect the response
+            const data = JSON.parse(responseText);
+            emit('insert-code', data.response);
+            showAIPanel.value = false;
+            notificationStore.addNotification('Code generated successfully');
+    }).catch(function (error) {
+        console.error('Failed to generate code:', error);
+        notificationStore.addNotification('Failed to generate code', 'error');
+        showAIPanel.value = false;
     });
-
-    if (!response.ok) {
-      throw new Error('Failed to generate code');
-    }
-
-    const data = await response.json();
-    emit('insert-code', data.response);
-    showAIPanel.value = false;
-    notificationStore.addNotification('Code generated successfully');
   } catch (error) {
     console.error('Failed to generate code:', error);
     notificationStore.addNotification('Failed to generate code', 'error');
