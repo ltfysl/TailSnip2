@@ -17,8 +17,8 @@
 
       <!-- Toggle Sidebar Button -->
       <button
-        @click="toggleSidebar"
         class="flex items-center justify-center border-r border-gray-200 bg-white px-1 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+        @click="toggleSidebar"
       >
         <component
           :is="
@@ -37,19 +37,30 @@
         <div class="flex-1">
           <div class="flex h-full">
             <!-- Editor -->
-            <div class="flex-1" :class="{ hidden: isPreviewTabView }">
+            <div v-if="store.activeComponent" class="flex-1" :class="{ hidden: isPreviewTabView }">
               <CodeEditor />
+            </div>
+            <!-- Preview -->
+            <div v-if="store.activeComponent && isPreviewTabView" class="flex-1">
+              <PreviewPanel />
+            </div>
+            <!-- Message when no component is selected -->
+            <div v-if="!store.activeComponent" class="flex items-center justify-center w-full h-full">
+              <h1 class="text-2xl font-bold text-gray-500 dark:text-gray-300">
+                Please Select a Component or create a new one
+              </h1>
             </div>
 
             <!-- Resize Handle -->
             <div
-              v-if="!isPreviewTabView"
+              v-if="store.activeComponent && !isPreviewTabView"
               class="hover-handle cursor-col-resize hover:bg-blue-200"
               @mousedown="startResize"
             ></div>
 
             <!-- Preview Panel -->
             <div
+              v-if="store.activeComponent"
               ref="previewPanel"
               :class="['flex-shrink-0', { 'flex-1': isPreviewTabView }]"
               :style="previewStyle"
