@@ -17,8 +17,8 @@
 
       <!-- Toggle Sidebar Button -->
       <button
-        @click="toggleSidebar"
         class="flex items-center justify-center border-r border-gray-200 bg-white px-1 hover:bg-gray-50 dark:border-gray-700 dark:bg-gray-800 dark:hover:bg-gray-700"
+        @click="toggleSidebar"
       >
         <component
           :is="
@@ -43,11 +43,15 @@
 
             <!-- Resize Handle -->
             <div
-              v-if="!isPreviewTabView"
-              class="hover-handle cursor-col-resize hover:bg-blue-200"
-              @mousedown="startResize"
-            ></div>
-
+              class="resizer-handle"
+              :class="{ 'resizer-active': resizeState.isResizing }"
+              role="separator"
+              aria-orientation="vertical"
+              :aria-valuenow="settingsStore.previewWidth"
+              :aria-valuemin="minWidth"
+              :aria-valuemax="maxWidth"
+              @pointerdown="startResize"
+            />
             <!-- Preview Panel -->
             <div
               ref="previewPanel"
@@ -73,6 +77,7 @@ import ComponentVersions from '../components/ComponentVersions.vue';
 import CodeEditor from '../components/CodeEditor.vue';
 import PreviewPanel from '../components/PreviewPanel.vue';
 import { useEventBus, EventNames } from '../utils/eventbus';
+import { reactive } from 'vue';
 
 const store = useComponentStore();
 const settingsStore = useSettingsStore();
@@ -80,7 +85,6 @@ const eventBus = useEventBus();
 const previewPanel = ref<HTMLElement | null>(null);
 const minWidth = 320;
 const maxWidth = 800;
-let isResizing = false;
 const isPreviewTabView = ref(false);
 
 const previewStyle = computed(() => {
@@ -102,36 +106,50 @@ const toggleSidebar = () => {
   settingsStore.setSidebarCollapsed(!settingsStore.sidebarCollapsed);
 };
 
-const startResize = (event: MouseEvent) => {
-  isResizing = true;
-  document.addEventListener('mousemove', handleResize);
-  document.addEventListener('mouseup', stopResize);
-  document.body.style.userSelect = 'none';
+const resizeState = reactive({
+  isResizing: false,
+  startX: 0,
+  startWidth: 0,
+});
+
+const startResize = (event: PointerEvent) => {
+  resizeState.isResizing = true;
+  resizeState.startX = event.clientX;
+  resizeState.startWidth = settingsStore.previewWidth;
+
+  window.addEventListener('pointermove', handleResize);
+  window.addEventListener('pointerup', stopResize);
+  (event.target as HTMLElement).setPointerCapture(event.pointerId);
 };
 
-const handleResize = (event: MouseEvent) => {
-  if (!isResizing || !previewPanel.value) return;
+const handleResize = (event: PointerEvent) => {
+  if (!resizeState.isResizing) return;
 
-  const containerRect =
-    previewPanel.value.parentElement?.getBoundingClientRect();
-  if (!containerRect) return;
+  const deltaX = event.clientX - resizeState.startX;
+  const newWidth = resizeState.startWidth - deltaX;
+  const clampedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
 
-  const newWidth = containerRect.right - event.clientX;
-  const constrainedWidth = Math.min(Math.max(newWidth, minWidth), maxWidth);
-  settingsStore.setPreviewWidth(constrainedWidth);
+  settingsStore.setPreviewWidth(clampedWidth);
 };
 
 const stopResize = () => {
-  isResizing = false;
-  document.removeEventListener('mousemove', handleResize);
-  document.removeEventListener('mouseup', stopResize);
-  document.body.style.userSelect = '';
+  resizeState.isResizing = false;
+  window.removeEventListener('pointermove', handleResize);
+  window.removeEventListener('pointerup', stopResize);
 };
 
+watch(
+  () => resizeState.isResizing,
+  (resizing) => {
+    document.body.classList.toggle('resizing-active', resizing);
+    document.body.style.cursor = resizing ? 'col-resize' : '';
+  }
+);
+
 onBeforeUnmount(() => {
-  if (isResizing) {
-    document.removeEventListener('mousemove', handleResize);
-    document.removeEventListener('mouseup', stopResize);
+  if (resizeState.isResizing) {
+    window.removeEventListener('pointermove', handleResize);
+    window.removeEventListener('pointerup', stopResize);
   }
   eventBus.off(EventNames.PREVIEW_RESIZE, () => {});
 });
@@ -150,17 +168,24 @@ onBeforeUnmount(() => {
   border-width: 0;
 }
 
-.hover-handle {
-  width: 4px;
-  transition: background-color 0.2s;
+.resizer-handle {
+  @apply w-1 cursor-col-resize bg-gray-300 transition-all hover:bg-blue-500;
+  position: relative;
+  z-index: 10;
+
+  &:hover::after,
+  &.resizer-active::after {
+    content: '';
+    @apply absolute inset-y-0 -left-1 w-3 bg-transparent;
+  }
 }
 
-.hover-handle:active {
-  width: 4px;
-  background-color: rgb(59, 130, 246);
+.resizer-active {
+  @apply bg-blue-500;
 }
 
-.selecting-none {
+body.resizing-active {
   user-select: none;
+  -webkit-user-select: none;
 }
 </style>
