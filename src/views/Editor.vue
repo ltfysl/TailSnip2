@@ -37,8 +37,28 @@
         <div class="flex-1">
           <div class="flex h-full">
             <!-- Editor -->
-            <div class="flex-1" :class="{ hidden: isPreviewTabView }">
+            <div
+              v-if="store.activeComponent"
+              class="flex-1"
+              :class="{ hidden: isPreviewTabView }"
+            >
               <CodeEditor />
+            </div>
+            <!-- Preview -->
+            <div
+              v-if="store.activeComponent && isPreviewTabView"
+              class="flex-1"
+            >
+              <PreviewPanel />
+            </div>
+            <!-- Message when no component is selected -->
+            <div
+              v-if="!store.activeComponent"
+              class="flex h-full w-full items-center justify-center"
+            >
+              <h1 class="text-2xl font-bold text-gray-500 dark:text-gray-300">
+                Please Select a Component or create a new one
+              </h1>
             </div>
 
             <!-- Resize Handle -->
@@ -54,6 +74,7 @@
             />
             <!-- Preview Panel -->
             <div
+              v-if="store.activeComponent"
               ref="previewPanel"
               :class="['flex-shrink-0', { 'flex-1': isPreviewTabView }]"
               :style="previewStyle"
